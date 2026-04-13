@@ -1,4 +1,8 @@
-FROM debian:stretch
+# Use a modern, supported version of Ubuntu
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during installation
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install desktop environment and NoVNC
 RUN apt-get update && apt-get install -y \
@@ -10,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     procps \
     python3 \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set up environment variables
 ENV USER=root
@@ -24,12 +28,14 @@ RUN echo "#!/bin/bash\n\
 mkdir -p ~/.vnc\n\
 echo 'password123' | vncpasswd -f > ~/.vnc/passwd\n\
 chmod 600 ~/.vnc/passwd\n\
+# Start VNC server\n\
 vncserver :1 -geometry 1280x720 -depth 24\n\
-/usr/share/novnc/utils/launch.sh --vnc localhost:5901 --listen 7860" > /start.sh
+# Link NoVNC to the VNC session and listen on 7860\n\
+/usr/share/novnc/utils/novnc_proxy --vnc localhost:5901 --listen 7860" > /start.sh
 
 RUN chmod +x /start.sh
 
-# Hugging Face Spaces run on port 7860
+# Expose the web port
 EXPOSE 8000
 
 CMD ["/start.sh"]
