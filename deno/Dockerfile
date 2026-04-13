@@ -1,7 +1,5 @@
-# Use a modern, supported version of Ubuntu
 FROM ubuntu:22.04
 
-# Prevent interactive prompts during installation
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install desktop environment and NoVNC
@@ -16,26 +14,25 @@ RUN apt-get update && apt-get install -y \
     python3 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Set up environment variables
 ENV USER=root
 ENV HOME=/root
 ENV DISPLAY=:1
-ENV VNC_PORT=5901
-ENV NOVNC_PORT=8000
 
-# Create a startup script
+# Create a startup script with the CORRECT novnc path
 RUN echo "#!/bin/bash\n\
 mkdir -p ~/.vnc\n\
-echo 'password123' | vncpasswd -f > ~/.vnc/passwd\n\
+# VNC passwords are limited to 8 characters\n\
+echo 'pass1234' | vncpasswd -f > ~/.vnc/passwd\n\
 chmod 600 ~/.vnc/passwd\n\
-# Start VNC server\n\
+# Stop any existing sessions\n\
+vncserver -kill :1 || true\n\
+# Start VNC\n\
 vncserver :1 -geometry 1280x720 -depth 24\n\
-# Link NoVNC to the VNC session and listen on 7860\n\
-/usr/share/novnc/utils/novnc_proxy --vnc localhost:5901 --listen 7860" > /start.sh
+# Start NoVNC proxy (Correct path for Ubuntu 22.04 is /usr/bin/novnc_proxy)\n\
+/usr/bin/novnc_proxy --vnc localhost:5901 --listen 7860" > /start.sh
 
 RUN chmod +x /start.sh
 
-# Expose the web port
 EXPOSE 8000
 
 CMD ["/start.sh"]
