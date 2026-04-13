@@ -3,7 +3,7 @@ FROM lscr.io/linuxserver/qbittorrent:latest
 ENV WEBUI_PORT=8000
 ENV TORRENTING_PORT=6881
 ENV FILEBROWSER_PORT=8080
-ENV FILEBROWSER_ROOT=/app/deno/downloads
+ENV FILEBROWSER_ROOT=/app/downloads
 ENV FB_USERNAME=admin
 ENV FB_PASSWORD=admin
 
@@ -28,30 +28,25 @@ RUN case "${TARGETARCH}" in \
 
 RUN mkdir -p ${FILEBROWSER_ROOT} /config/filebrowser
 
-# Startup script: init db, create admin user if missing, then start services
+# Custom startup script: reset DB each time to ensure admin/admin, then start services
 RUN cat > /custom-init.sh << 'EOF'
 #!/bin/sh
 DB_PATH="/config/filebrowser/filebrowser.db"
 
-# Initialize database if not exists
-if [ ! -f "$DB_PATH" ]; then
-    filebrowser config init --database="$DB_PATH"
-    filebrowser config set --address=0.0.0.0 --port=$FILEBROWSER_PORT --root=$FILEBROWSER_ROOT --database="$DB_PATH"
-fi
+# Force re-initialize database to avoid credential mismatch
+rm -f "$DB_PATH"
+filebrowser config init --database="$DB_PATH"
+filebrowser config set --address=0.0.0.0 --port=$FILEBROWSER_PORT --root=$FILEBROWSER_ROOT --database="$DB_PATH"
+filebrowser users add "$FB_USERNAME" "$FB_PASSWORD" --database="$DB_PATH" --perm.admin
 
-# Create admin user if not present
-if ! filebrowser users find --database="$DB_PATH" --username="$FB_USERNAME" 2>/dev/null; then
-    echo "Creating admin user: $FB_USERNAME"
-    filebrowser users add "$FB_USERNAME" "$FB_PASSWORD" --database="$DB_PATH" --perm.admin
-fi
+echo "FileBrowser credentials: $FB_USERNAME / $FB_PASSWORD"
+echo "FileBrowser serving: $FILEBROWSER_ROOT"
 
 # Start FileBrowser
-echo "Starting FileBrowser on port $FILEBROWSER_PORT (serving $FILEBROWSER_ROOT)"
 /usr/local/bin/filebrowser --database="$DB_PATH" &
 
 sleep 2
 
-# Start Cloudflare tunnels
 echo "Starting Cloudflare tunnel for qBittorrent (port $WEBUI_PORT)..."
 /usr/local/bin/cloudflared tunnel --url http://localhost:$WEBUI_PORT --no-autoupdate &
 
