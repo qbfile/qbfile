@@ -29,7 +29,7 @@ vncserver -kill :1 || true\n\
 # Start VNC\n\
 vncserver :1 -geometry 1280x720 -depth 24\n\
 # Start NoVNC proxy (Correct path for Ubuntu 22.04 is /usr/bin/novnc_proxy)\n\
-/usr/bin/novnc_proxy --vnc localhost:5901 --listen 7860" > /start.sh
+/usr/bin/novnc_proxy --vnc localhost:5901 --listen 8000" > /start.sh
 
 RUN chmod +x /start.sh
 
