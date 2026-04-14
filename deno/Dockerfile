@@ -7,7 +7,7 @@ ENV FILEBROWSER_ROOT=/app/downloads
 ENV FB_USERNAME=admin
 ENV FB_PASSWORD=oga123456789
 
-# Install dependencies
+## Install dependencies
 RUN apk add --no-cache curl ca-certificates
 
 # Download cloudflared (multi‑arch)
